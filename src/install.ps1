@@ -23,23 +23,33 @@ Write-Host "--- Installing Patroni packages ---" -ForegroundColor blue
 pip3.exe install --no-index --find-links .patroni-packages -r requirements.txt
 pip3.exe install --no-index --find-links .patroni-packages psycopg psycopg-binary
 pip3.exe install --no-index --find-links .patroni-packages cdiff
+pip3.exe install --no-index --find-links .patroni-packages pywin32
 Set-Location '..'
 Write-Host "--- Patroni packages installed ---`n" -ForegroundColor green
 
-$userName = "pes"
+$userName = "VLPES"
 $out = Get-LocalUser -Name $userName -ErrorAction SilentlyContinue
 if($null -eq $out)
 {
     Write-Host "--- Adding local user '$userName' for patroni service ---" -ForegroundColor blue
-    $Password = ("a".."z")+("A".."Z") | Get-Random -Count 4
-    $Password += ("!"..".") | Get-Random -Count 2
-    $Password += ("0".."9") | Get-Random -Count 2
-    $Password = [Security.SecurityElement]::Escape(-join($Password))
 
-    $SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
+    # Build RAW password
+    $PasswordRaw  = ("a".."z")+("A".."Z") | Get-Random -Count 4
+    $PasswordRaw += ("!"..".") | Get-Random -Count 2
+    $PasswordRaw += ("0".."9") | Get-Random -Count 2
+    $PasswordRaw  = -join $PasswordRaw
+
+    # Use RAW for Windows user
+    $SecurePassword = ConvertTo-SecureString $PasswordRaw -AsPlainText -Force
     New-LocalUser $userName -Password $SecurePassword -Description "Patroni service account"
+
+    # Use XML-escaped for writing into XML
+    $PasswordXml = [Security.SecurityElement]::Escape($PasswordRaw)
+
     $ConfFile = 'patroni\patroni_service.xml'
-    (Get-Content $ConfFile) -replace '12345', $Password | Out-File -encoding ASCII $ConfFile
+    (Get-Content $ConfFile -Raw) -replace 'VLPESPWD', $PasswordXml |
+        Set-Content -Encoding UTF8 $ConfFile
+
     Write-Host "--- Patroni user '$userName' added ---`n" -ForegroundColor green
 }
 else
@@ -47,6 +57,7 @@ else
     Write-Host "--- WARNING: Patroni user '$userName' already exists! ---" -ForegroundColor red
     Write-Host "--- Please, set a correct password in 'patroni\patroni_service.xml'! ---`n" -ForegroundColor red
 }
+
 
 Write-Host "--- Installing Etcd service ---" -ForegroundColor blue
 etcd\etcd_service.exe install | Out-Default
