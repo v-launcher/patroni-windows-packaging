@@ -59,7 +59,7 @@ function Get-ETCD {
     Write-Host "`n--- Download ETCD ---" -ForegroundColor blue
     Invoke-WebRequest -Uri $ETCD_REF -OutFile "$env:TEMP\etcd.zip"
     Expand-ZipFile "$env:TEMP\etcd.zip" "$MD"
-    Rename-Item "$MD\etcd-*" "etcd"
+    Get-Item "$MD\etcd-*" | Rename-Item -NewName "etcd"
     Copy-Item "src\etcd.yaml" "$MD\etcd"
     Write-Host "`n--- ETCD downloaded ---" -ForegroundColor green
 }
@@ -68,7 +68,7 @@ function Get-Micro {
     Write-Host "`n--- Download MICRO ---" -ForegroundColor blue
     Invoke-WebRequest -Uri $MICRO_REF -OutFile "$env:TEMP\micro.zip"
     Expand-ZipFile "$env:TEMP\micro.zip" "$MD"
-    Rename-Item "$MD\micro-*" "micro"
+    Get-Item "$MD\micro-*" | Rename-Item -NewName "micro"
     Write-Host "`n--- MICRO downloaded ---" -ForegroundColor green
 }
 
@@ -76,7 +76,7 @@ function Get-VIPManager {
     Write-Host "`n--- Download VIP-MANAGER ---" -ForegroundColor blue
     Invoke-WebRequest -Uri $VIP_REF -OutFile "$env:TEMP\vip.zip"
     Expand-ZipFile "$env:TEMP\vip.zip" "$MD"
-    Rename-Item "$MD\vip-manager*" "vip-manager"
+    Get-Item "$MD\vip-manager*" | Rename-Item -NewName "vip-manager"
     Remove-Item "$MD\vip-manager\*.yml" -ErrorAction Ignore
     Copy-Item "src\vip.yaml" "$MD\vip-manager"
     Write-Host "`n--- VIP-MANAGER downloaded ---" -ForegroundColor green
@@ -98,9 +98,10 @@ function Get-Patroni {
     Write-Host "`n--- Download PATRONI ---" -ForegroundColor blue
     Invoke-WebRequest -Uri $PATRONI_REF -OutFile "$env:TEMP\patroni.zip"
     Expand-ZipFile "$env:TEMP\patroni.zip" "$MD"
-    Rename-Item "$MD\patroni-*" "patroni"
+    Get-Item "$MD\patroni-*" | Rename-Item -NewName "patroni"
     Remove-Item "$MD\patroni\postgres?.yml" -ErrorAction Ignore
     Copy-Item "src\patroni.yaml" "$MD\patroni"
+    Copy-Item "src\patroni_launcher.py" "$MD\patroni"
     Write-Host "`n--- PATRONI downloaded ---" -ForegroundColor green
 }
 
@@ -138,7 +139,7 @@ function Get-PatroniPackages {
     Write-Host "`n--- Download PATRONI packages ---" -ForegroundColor blue
     Set-Location "$MD\patroni"
     & $PIP download -r requirements.txt -d .patroni-packages
-    & $PIP download pip pip_install setuptools wheel cdiff psycopg psycopg-binary -d .patroni-packages
+    & $PIP download pip pip_install setuptools wheel cdiff psycopg psycopg-binary pywin32 -d .patroni-packages
     Set-Location -Path "..\.."
     Write-Host "`n--- PATRONI packages downloaded ---" -ForegroundColor green
 }
